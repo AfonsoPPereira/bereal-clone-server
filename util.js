@@ -134,10 +134,16 @@ export const setUsers = (friendsData) =>
 
 export const setRelationships = (friendsData, userId) =>
     Relationship.bulkCreate(
-        friendsData.map((user) => ({
-            user_id: userId,
-            target_user_id: user.id
-        })),
+        [
+            {
+                user_id: userId,
+                target_user_id: userId
+            },
+            ...friendsData.map((user) => ({
+                user_id: userId,
+                target_user_id: user.id
+            }))
+        ],
         {
             ignoreDuplicates: true,
             fields: ['user_id', 'target_user_id']
