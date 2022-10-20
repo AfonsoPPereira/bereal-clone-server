@@ -54,7 +54,7 @@ router.post('/request-code', async (req, res) => {
             }
         );
 
-        res.json({});
+        res.json(null);
     } catch (error) {
         sendErrResponse(res, error);
     }
@@ -100,7 +100,8 @@ router.post('/login', async (req, res) => {
             BEREAL_USER_INFO_COOKIE,
             JSON.stringify({
                 username,
-                profilePicture
+                profilePicture,
+                loggedInAt: Date.now()
             }),
             {
                 signed: false
@@ -120,7 +121,7 @@ router.post('/login', async (req, res) => {
             }
         );
 
-        res.json({});
+        res.json(null);
     } catch (error) {
         sendErrResponse(res, error);
     }
@@ -172,7 +173,7 @@ router.get('/user/:username', auth(), async (req, res) => {
 router.post('/logout', auth(), (req, res) => {
     try {
         logout(res);
-        res.send();
+        res.json(null);
     } catch (error) {
         sendErrResponse(res, error);
     }

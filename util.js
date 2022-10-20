@@ -7,7 +7,7 @@ import instance from './instance.js';
 import { BEREAL_AUTH_COOKIE } from './middlewares/auth.js';
 
 export const sendErrResponse = (res, error) => {
-    res.status(error?.response?.status ?? 403).send();
+    res.status(error?.response?.status ?? 500).send();
 };
 
 export const getUserAuthInfo = (req) => JSON.parse(req.signedCookies[BEREAL_AUTH_COOKIE]);
