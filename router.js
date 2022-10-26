@@ -29,11 +29,6 @@ const sendCookie = (res, name, val, options = {}) =>
         ...options
     });
 
-const logout = (res) => {
-    res.clearCookie(BEREAL_AUTH_COOKIE, defaultCookieConfig);
-    res.clearCookie(BEREAL_USER_INFO_COOKIE, defaultCookieConfig);
-};
-
 router.post('/request-code', async (req, res) => {
     try {
         const { phoneNumber } = req.body;
@@ -150,8 +145,6 @@ router.get('/feed', auth(), async (req, res) => {
 
         res.json(await getDataByUser(userId));
     } catch (error) {
-        logout(res);
-
         sendErrResponse(res, error);
     }
 });
@@ -167,15 +160,6 @@ router.get('/user/:username', auth(), async (req, res) => {
         res.json(user);
     } catch (error) {
         res.sendStatus(404);
-    }
-});
-
-router.post('/logout', auth(), (req, res) => {
-    try {
-        logout(res);
-        res.json(null);
-    } catch (error) {
-        sendErrResponse(res, error);
     }
 });
 
