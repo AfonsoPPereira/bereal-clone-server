@@ -58,13 +58,13 @@ export const getDataByUserForUser = async (userId, username) =>
         )
     ).map((el) => el.get({ plain: true }))[0];
 
-export const storeLatestFeed = (data) => {
-    const date = new Date(data[data.length - 1].takenAt._seconds * 1000);
+export const storeLatestFeed = (feed) => {
+    const date = new Date(feed[feed.length - 1].takenAt._seconds * 1000);
 
     return Photo.bulkCreate(
-        data.map((photo) => ({
+        feed.map((photo) => ({
             id: photo.id,
-            user_id: photo.ownerID,
+            user_id: photo.user?.id,
             date,
             taken_at: new Date(photo.takenAt._seconds * 1000),
             details: photo
@@ -75,12 +75,12 @@ export const storeLatestFeed = (data) => {
     );
 };
 
-export const storeLatestProfilePictures = (data) =>
+export const storeFeedUsers = (feed) =>
     User.bulkCreate(
-        data.map((user) => ({
-            id: user.id,
-            username: user.userName,
-            profile_picture: user?.user?.profilePicture?.url
+        feed.map((photo) => ({
+            id: photo.user?.id,
+            username: photo.userName,
+            profile_picture: photo.user?.profilePicture?.url
         })),
         {
             updateOnDuplicate: ['profile_picture']
@@ -141,7 +141,7 @@ export const setRelationships = (friendsData, userId) =>
             },
             ...friendsData.map((user) => ({
                 user_id: userId,
-                target_user_id: user.id
+                target_user_id: user?.user?.id ?? user.id
             }))
         ],
         {
@@ -163,7 +163,7 @@ export const attemptLoginWithRefreshToken = (refreshToken) =>
         refreshToken
     });
 
-export const saveFeed = async ({ accessToken, refreshToken }, retry = true) => {
+export const saveFeed = async ({ userId, accessToken, refreshToken }, retry = true) => {
     let feed = null;
     let newAccessToken = accessToken;
 
@@ -177,7 +177,8 @@ export const saveFeed = async ({ accessToken, refreshToken }, retry = true) => {
     }
 
     if (feed) {
-        storeLatestProfilePictures(feed);
+        await storeFeedUsers(feed);
+        await setRelationships(feed, userId);
         await storeLatestFeed(feed);
     }
 

@@ -128,7 +128,7 @@ router.get('/feed', auth(), async (req, res) => {
         const { userId, refreshToken } = feedReq;
         let { accessToken } = feedReq;
 
-        accessToken = await saveFeed({ refreshToken, accessToken });
+        accessToken = await saveFeed({ userId, refreshToken, accessToken });
 
         sendCookie(
             res,
