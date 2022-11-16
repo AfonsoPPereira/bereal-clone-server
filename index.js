@@ -20,7 +20,7 @@ app.use(express.json());
 app.use(cookieParser(process.env?.COOKIE_SECRET));
 
 app.disable('x-powered-by');
-app.set('etag', false);
+/* app.set('etag', false); */
 
 app.use(apiKeyAuth());
 
