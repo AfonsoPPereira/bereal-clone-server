@@ -11,6 +11,7 @@
 
 - Node.js + Express.js
 - Sequelize - ORM
+- MySQL
 - Yarn
 - ES Lint + Prettier
 
