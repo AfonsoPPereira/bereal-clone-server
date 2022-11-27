@@ -4,15 +4,21 @@ import User from './models/User.js';
 import Relationship from './models/Relationship.js';
 import Photo from './models/Photo.js';
 import instance from './instance.js';
-import { BEREAL_AUTH_COOKIE } from './middlewares/auth.js';
+import { BEREAL_AUTH_COOKIE, defaultCookieConfig } from './middlewares/auth.js';
 
 export const sendErrResponse = (res, error) => {
     res.status(error?.response?.status ?? 500).send();
 };
 
+export const sendCookie = (res, name, val, options = {}) =>
+    res.cookie(name, val, {
+        ...defaultCookieConfig,
+        ...options
+    });
+
 export const getUserAuthInfo = (req) => JSON.parse(req.signedCookies[BEREAL_AUTH_COOKIE]);
 
-const getDataByUserQuery = (where) => ({
+const getUserFeedDataCommon = (where) => ({
     attributes: [
         ['target_user_id', 'id'],
         [sequelize.col('User.profile_picture'), 'profilePicture'],
@@ -41,15 +47,42 @@ const getDataByUserQuery = (where) => ({
     order: [['photos', 'taken_at', 'DESC']]
 });
 
-export const getDataByUser = async (userId) =>
-    (await Relationship.findAll(getDataByUserQuery({ user_id: userId }))).map((el) =>
+export const getLatestUsersFeed = async (userId) =>
+    (
+        await Relationship.findAll({
+            attributes: [
+                ['target_user_id', 'id'],
+                [sequelize.col('User.profile_picture'), 'profilePicture'],
+                [sequelize.col('User.username'), 'username']
+            ],
+            include: [
+                {
+                    model: User,
+                    foreignKey: 'user_id',
+                    attributes: []
+                },
+                {
+                    model: Photo,
+                    as: 'photos',
+                    attributes: []
+                }
+            ],
+            where: {
+                user_id: userId
+            },
+            order: [['photos', 'taken_at', 'DESC']]
+        })
+    ).map((el) => el.get({ plain: true }));
+
+export const getFeedData = async (userId) =>
+    (await Relationship.findAll(getUserFeedDataCommon({ user_id: userId }))).map((el) =>
         el.get({ plain: true })
     );
 
-export const getDataByUserForUser = async (userId, username) =>
+export const getUserFeedData = async (userId, username) =>
     (
         await Relationship.findAll(
-            getDataByUserQuery({
+            getUserFeedDataCommon({
                 [Op.and]: [
                     { user_id: userId },
                     sequelize.where(sequelize.col('User.username'), username)
@@ -183,4 +216,27 @@ export const saveFeed = async ({ userId, accessToken, refreshToken }, retry = tr
     }
 
     return newAccessToken;
+};
+
+export const setSaveFeed = async (req, res) => {
+    const feedReq = getUserAuthInfo(req);
+    const { userId, refreshToken } = feedReq;
+    let { accessToken } = feedReq;
+
+    accessToken = await saveFeed({ userId, refreshToken, accessToken });
+
+    sendCookie(
+        res,
+        BEREAL_AUTH_COOKIE,
+        JSON.stringify({
+            userId,
+            accessToken,
+            refreshToken
+        }),
+        {
+            httpOnly: true
+        }
+    );
+
+    return userId;
 };

@@ -3,31 +3,24 @@ import * as dotenv from 'dotenv';
 
 import express from 'express';
 import instance from './instance.js';
-import auth, {
-    BEREAL_AUTH_COOKIE,
-    BEREAL_USER_INFO_COOKIE,
-    defaultCookieConfig
-} from './middlewares/auth.js';
+import auth, { BEREAL_AUTH_COOKIE, BEREAL_USER_INFO_COOKIE } from './middlewares/auth.js';
 import {
     getAndSetUser,
-    getDataByUser,
-    getDataByUserForUser,
+    getFeedData,
+    getUserFeedData,
     getUserAuthInfo,
     saveFeed,
+    sendCookie,
     sendErrResponse,
     setRelationships,
-    setUsers
+    setSaveFeed,
+    setUsers,
+    getLatestUsersFeed
 } from './util.js';
 
 dotenv.config();
 
 const router = express.Router();
-
-const sendCookie = (res, name, val, options = {}) =>
-    res.cookie(name, val, {
-        ...defaultCookieConfig,
-        ...options
-    });
 
 router.post('/request-code', async (req, res) => {
     try {
@@ -124,26 +117,19 @@ router.post('/login', async (req, res) => {
 
 router.get('/feed', auth(), async (req, res) => {
     try {
-        const feedReq = getUserAuthInfo(req);
-        const { userId, refreshToken } = feedReq;
-        let { accessToken } = feedReq;
+        const userId = await setSaveFeed(req, res);
 
-        accessToken = await saveFeed({ userId, refreshToken, accessToken });
+        res.json(await getFeedData(userId));
+    } catch (error) {
+        sendErrResponse(res, error);
+    }
+});
 
-        sendCookie(
-            res,
-            BEREAL_AUTH_COOKIE,
-            JSON.stringify({
-                userId,
-                accessToken,
-                refreshToken
-            }),
-            {
-                httpOnly: true
-            }
-        );
+router.get('/users', auth(), async (req, res) => {
+    try {
+        const userId = await setSaveFeed(req, res);
 
-        res.json(await getDataByUser(userId));
+        res.json(await getLatestUsersFeed(userId));
     } catch (error) {
         sendErrResponse(res, error);
     }
@@ -152,7 +138,7 @@ router.get('/feed', auth(), async (req, res) => {
 router.get('/user/:username', auth(), async (req, res) => {
     try {
         const { userId, accessToken } = getUserAuthInfo(req);
-        const user = await getDataByUserForUser(userId, req.params.username);
+        const user = await getUserFeedData(userId, req.params.username);
         if (!user) throw new Error();
 
         await saveFeed({ accessToken }, false);
