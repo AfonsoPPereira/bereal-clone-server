@@ -103,7 +103,7 @@ export const storeLatestFeed = (feed) => {
             details: photo
         })),
         {
-            updateOnDuplicate: ['details']
+            updateOnDuplicate: ['details', 'taken_at']
         }
     );
 };

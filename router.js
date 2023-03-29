@@ -152,10 +152,10 @@ router.get('/user/:username', auth(), async (req, res) => {
 router.get('/download', auth(), async (req, res) => {
     const url = req.query?.url;
     const arrayBuffer = await axios.get(url, { responseType: 'arraybuffer' });
-    const buffer = Buffer.from(arrayBuffer.data, 'base64');
+    const buffer = Buffer.from(arrayBuffer.data, 'binary');
 
     res.writeHead(200, {
-        'Content-Type': 'image/png',
+        'Content-Type': 'image/webp',
         'Content-Length': buffer.length,
         'Content-Disposition': 'attachment'
     });
