@@ -34,8 +34,8 @@ const Photo = sequelize.define('Photo', {
         name: 'taken_at_index',
         fields: [{ name: 'taken_at', order: 'DESC' }],
     }, {
-        name: 'user_id_date_index',
-        fields: ['user_id', 'date'],
+        name: 'user_id_taken_at_index',
+        fields: ['user_id', 'taken_at'],
         unique: true,
     }],
 });
