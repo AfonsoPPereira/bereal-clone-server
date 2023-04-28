@@ -36,10 +36,8 @@
             }
         ],
         "linebreak-style": [
-            "error",
-            "windows"
         ],
         "no-underscore-dangle": "off",
-        "import/extensions": "off"
+        "import/extensions": "off",
     }
 }

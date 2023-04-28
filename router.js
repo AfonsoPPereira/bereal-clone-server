@@ -59,13 +59,26 @@ router.post('/login', async (req, res) => {
             })
         ).data;
 
-        const { idToken: accessToken, refreshToken } = (
+        const { idToken } = (
             await instance.post(
                 // eslint-disable-next-line max-len
                 `https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyCustomToken?key=${process.env.GOOGLE_API_KEY}`,
                 {
                     token: tempToken,
                     returnSecureToken: true
+                }
+            )
+        ).data;
+
+        const { access_token: accessToken, refresh_token: refreshToken } = (
+            await instance.post(
+                // eslint-disable-next-line max-len
+                'https://auth.bereal.team/token?grant_type=firebase',
+                {
+                    grant_type: 'firebase',
+                    client_id: process.env.CLIENT_ID,
+                    client_secret: process.env.CLIENT_SECRET,
+                    token: idToken
                 }
             )
         ).data;
