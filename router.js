@@ -15,7 +15,8 @@ import {
     setRelationships,
     setSaveFeed,
     setUsers,
-    getLatestUsersFeed
+    getLatestUsersFeed,
+    attemptLoginWithRefreshToken
 } from './util.js';
 
 dotenv.config();
@@ -59,7 +60,7 @@ router.post('/login', async (req, res) => {
             })
         ).data;
 
-        const { idToken, refreshToken: firebaseRefreshToken } = (
+        const { refreshToken } = (
             await instance.post(
                 // eslint-disable-next-line max-len
                 `https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyCustomToken?key=${process.env.GOOGLE_API_KEY}`,
@@ -70,29 +71,7 @@ router.post('/login', async (req, res) => {
             )
         ).data;
 
-        const { refresh_token: refreshToken } = (
-            await instance.post(
-                // eslint-disable-next-line max-len
-                `https://securetoken.googleapis.com/v1/token?key=${process.env.GOOGLE_API_KEY}`,
-                {
-                    grantType: 'refresh_token',
-                    refreshToken: firebaseRefreshToken
-                }
-            )
-        ).data;
-
-        const { access_token: accessToken } = (
-            await instance.post(
-                // eslint-disable-next-line max-len
-                'https://auth.bereal.team/token?grant_type=firebase',
-                {
-                    grant_type: 'firebase',
-                    client_id: process.env.CLIENT_ID,
-                    client_secret: process.env.CLIENT_SECRET,
-                    token: idToken
-                }
-            )
-        ).data;
+        const accessToken = (await attemptLoginWithRefreshToken(refreshToken))?.accessToken;
 
         instance
             .get('https://mobile.bereal.com/api/relationships/friends', {

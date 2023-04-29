@@ -191,11 +191,33 @@ export const fetchLatestContent = (accessToken) =>
         }
     });
 
-export const attemptLoginWithRefreshToken = (refreshToken) =>
-    instance.post(`https://securetoken.googleapis.com/v1/token?key=${process.env.GOOGLE_API_KEY}`, {
-        grantType: 'refresh_token',
-        refreshToken
-    });
+export const attemptLoginWithRefreshToken = async (refreshToken) => {
+    const { id_token: idToken } = (
+        await instance.post(
+            // eslint-disable-next-line max-len
+            `https://securetoken.googleapis.com/v1/token?key=${process.env.GOOGLE_API_KEY}`,
+            {
+                grantType: 'refresh_token',
+                refreshToken
+            }
+        )
+    ).data;
+
+    const { access_token: accessToken } = (
+        await instance.post(
+            // eslint-disable-next-line max-len
+            'https://auth.bereal.team/token?grant_type=firebase',
+            {
+                grant_type: 'firebase',
+                client_id: process.env.CLIENT_ID,
+                client_secret: process.env.CLIENT_SECRET,
+                token: idToken
+            }
+        )
+    ).data;
+
+    return { accessToken, idToken };
+};
 
 export const saveFeed = async ({ userId, accessToken, refreshToken }, retry = true) => {
     let feed = null;
@@ -205,7 +227,7 @@ export const saveFeed = async ({ userId, accessToken, refreshToken }, retry = tr
         feed = (await fetchLatestContent(newAccessToken)).data;
     } catch (error) {
         if (retry && refreshToken) {
-            newAccessToken = (await attemptLoginWithRefreshToken(refreshToken)).data.access_token;
+            newAccessToken = (await attemptLoginWithRefreshToken(refreshToken))?.accessToken;
             feed = (await fetchLatestContent(newAccessToken)).data;
         }
     }
