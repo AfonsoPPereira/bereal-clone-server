@@ -7,6 +7,7 @@ import instance from './instance.js';
 import { BEREAL_AUTH_COOKIE, defaultCookieConfig } from './middlewares/auth.js';
 
 export const sendErrResponse = (res, error) => {
+    // console.error(error);
     res.status(error?.response?.status ?? 500).send();
 };
 
