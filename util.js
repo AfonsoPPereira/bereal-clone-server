@@ -92,28 +92,22 @@ export const getUserFeedData = async (userId, username) =>
         )
     ).map((el) => el.get({ plain: true }))[0];
 
-export const storeLatestFeed = (feed) => {
-    const date = new Date(feed[feed.length - 1].takenAt._seconds * 1000);
-
-    return Photo.bulkCreate(
-        feed.map((photo) => ({
-            id: photo.id,
-            user_id: photo.user?.id,
-            date,
-            taken_at: new Date(photo.takenAt._seconds * 1000),
-            details: photo
-        })),
-        {
-            updateOnDuplicate: ['details', 'taken_at']
-        }
-    );
-};
+export const storeLatestFeed = (feed) => Photo.bulkCreate(
+    feed.map((photo) => ({
+        id: photo.id,
+        user_id: photo.user.id,
+        date: photo.takenAt,
+        taken_at: photo.takenAt,
+        details: photo
+    })),
+    { updateOnDuplicate: ['details', 'taken_at'] }
+);
 
 export const storeFeedUsers = (feed) =>
     User.bulkCreate(
         feed.map((photo) => ({
             id: photo.user?.id,
-            username: photo.userName,
+            username: photo.user.username,
             profile_picture: photo.user?.profilePicture?.url
         })),
         {
@@ -185,7 +179,7 @@ export const setRelationships = (friendsData, userId) =>
     );
 
 export const fetchLatestContent = (accessToken) =>
-    instance.get('https://mobile.bereal.com/api/feeds/friends', {
+    instance.get('https://mobile.bereal.com/api/feeds/friends-v1', {
         headers: {
             Authorization: `Bearer ${accessToken}`
         }
@@ -220,23 +214,32 @@ export const attemptLoginWithRefreshToken = async (refreshToken) => {
 };
 
 export const saveFeed = async ({ userId, accessToken, refreshToken }, retry = true) => {
-    let feed = null;
+    let data = null;
     let newAccessToken = accessToken;
 
     try {
-        feed = (await fetchLatestContent(newAccessToken)).data;
+        data = (await fetchLatestContent(newAccessToken)).data;
     } catch (error) {
         if (retry && refreshToken) {
             newAccessToken = (await attemptLoginWithRefreshToken(refreshToken))?.accessToken;
-            feed = (await fetchLatestContent(newAccessToken)).data;
+            data = (await fetchLatestContent(newAccessToken)).data;
         }
     }
 
-    if (feed) {
-        await storeFeedUsers(feed);
-        await setRelationships(feed, userId);
-        await storeLatestFeed(feed);
-    }
+    if (!data) return newAccessToken;
+
+    const feed = data.friendsPosts.flatMap(user => user.posts.map(
+        post => ({
+            user: user.user,
+            photoURL: post.primary.url,
+            secondaryPhotoURL: post.secondary.url,
+            ...post
+        })
+    ));
+
+    await storeFeedUsers(feed);
+    await setRelationships(feed, userId);
+    await storeLatestFeed(feed);
 
     return newAccessToken;
 };
